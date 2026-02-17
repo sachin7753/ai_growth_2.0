@@ -115,7 +115,7 @@ def ai_predict(model, scaler, age_m, ht, wt, sex, wfh_p, hfa_p):
         logits = model(x)
         probs = torch.softmax(logits, dim=1)
         confidence, pred_idx_tensor = torch.max(probs, dim=1)
-        pred_idx = pred_idx_tensor.item()
+        pred_idx = int(pred_idx_tensor.item())
         confidence_score = confidence.item()
     status = CLASS_LABELS.get(pred_idx, "Unknown")
     bmi = wt / ((ht / 100) ** 2)
