@@ -1,0 +1,23 @@
+# ---- Secrets & credentials (NEVER commit these) ----
+.streamlit/secrets.toml
+service_account.json
+
+# ---- Python ----
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+*.egg
+
+# ---- Temp files ----
+temp_reports/
+*.tmp
+
+# ---- IDE / OS ----
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
