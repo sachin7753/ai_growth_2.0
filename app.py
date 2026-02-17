@@ -373,7 +373,7 @@ def upload_to_wix_media(pdf_buffer, child_name):
 
 
 # ------------------- SAVE TO WIX COLLECTION -------------------
-def save_to_wix_collection(child_name, child_id, file_url):
+def save_to_wix_collection(child_name, child_id, file_url, roll_number=""):
     """
     Insert a record into the 'ChildReports' CMS collection so the report
     is accessible from the Wix site's CMS (no manual steps).
@@ -392,14 +392,23 @@ def save_to_wix_collection(child_name, child_id, file_url):
     }
 
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
+    title = f"{child_name} Growth Report"
+    if roll_number:
+        title = f"[{roll_number}] {title}"
+    title += f" - {timestamp}"
+
+    data_fields = {
+        "title": title,
+        "childId": child_id,
+        "reportFileUrl": file_url,
+    }
+    if roll_number:
+        data_fields["rollNumber"] = roll_number
+
     payload = {
         "dataCollectionId": "ChildReports",
         "dataItem": {
-            "data": {
-                "title": f"{child_name} Growth Report - {timestamp}",
-                "childId": child_id,
-                "reportFileUrl": file_url,
-            }
+            "data": data_fields
         }
     }
 
@@ -458,6 +467,7 @@ with st.sidebar:
 
     height_cm = st.number_input("Height (cm)", 40.0, 130.0, value=85.0, step=0.1)
     weight_kg = st.number_input("Weight (kg)", 1.0, 40.0, value=12.0, step=0.1)
+    roll_number = st.text_input("Roll Number", value="", help="Child's roll number for easy report lookup")
     child_id = st.text_input("Child ID", value="", help="Unique ID to link this report to a child in Wix CMS")
     parent_email = st.text_input("Parent's Email", value="example@gmail.com")
     generate_button = st.button("Generate & Send Report")
@@ -496,7 +506,8 @@ if generate_button and growth_model and scaler:
         if wix_url:
             with st.spinner("Saving to Wix CMS collection..."):
                 cid = child_id if child_id else child_name.replace(' ', '_').lower()
-                save_to_wix_collection(child_name, cid, wix_url)
+                rn = roll_number if roll_number else ""
+                save_to_wix_collection(child_name, cid, wix_url, rn)
 
         if parent_email:
             send_email_report(parent_email, pdf_buffer, child_name)
