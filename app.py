@@ -372,6 +372,56 @@ def upload_to_wix_media(pdf_buffer, child_name):
     return file_url
 
 
+# ------------------- SAVE TO WIX COLLECTION -------------------
+def save_to_wix_collection(child_name, child_id, file_url):
+    """
+    Insert a record into the 'ChildReports' CMS collection so the report
+    is accessible from the Wix site's CMS (no manual steps).
+    """
+    try:
+        api_key = st.secrets["wix"]["api_key"]
+        site_id = st.secrets["wix"]["site_id"]
+    except Exception:
+        st.error("Wix credentials not found in secrets.")
+        return False
+
+    headers = {
+        "Authorization": api_key,
+        "wix-site-id": site_id,
+        "Content-Type": "application/json",
+    }
+
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
+    payload = {
+        "dataCollectionId": "ChildReports",
+        "dataItem": {
+            "data": {
+                "title": f"{child_name} Growth Report - {timestamp}",
+                "childId": child_id,
+                "reportFileUrl": file_url,
+            }
+        }
+    }
+
+    try:
+        resp = requests.post(
+            "https://www.wixapis.com/wix-data/v2/items",
+            json=payload,
+            headers=headers,
+            timeout=30,
+        )
+    except requests.RequestException as e:
+        st.error(f"Failed to save to Wix collection: {e}")
+        return False
+
+    if resp.status_code == 200:
+        st.success("Report saved to Wix CMS collection 'ChildReports'!")
+        return True
+    else:
+        st.error(f"Failed to save to collection ({resp.status_code}): {resp.text}")
+        return False
+
+
 # ------------------- SEND EMAIL -------------------
 def send_email_report(to_email, pdf_buffer, child_name):
     try:
@@ -408,6 +458,7 @@ with st.sidebar:
 
     height_cm = st.number_input("Height (cm)", 40.0, 130.0, value=85.0, step=0.1)
     weight_kg = st.number_input("Weight (kg)", 1.0, 40.0, value=12.0, step=0.1)
+    child_id = st.text_input("Child ID", value="", help="Unique ID to link this report to a child in Wix CMS")
     parent_email = st.text_input("Parent's Email", value="example@gmail.com")
     generate_button = st.button("Generate & Send Report")
 
@@ -440,6 +491,12 @@ if generate_button and growth_model and scaler:
         st.subheader("☁️ Wix Upload")
         with st.spinner("Uploading PDF to Wix Media Manager..."):
             wix_url = upload_to_wix_media(pdf_buffer, child_name)
+
+        # --- Save to Wix CMS Collection ---
+        if wix_url:
+            with st.spinner("Saving to Wix CMS collection..."):
+                cid = child_id if child_id else child_name.replace(' ', '_').lower()
+                save_to_wix_collection(child_name, cid, wix_url)
 
         if parent_email:
             send_email_report(parent_email, pdf_buffer, child_name)
