@@ -761,9 +761,9 @@ function showMessage(msg) {
 
 ---
 
-### 11.2 Food Recommendations Page (Radio Button Filter)
+### 11.2 Food Recommendations Page (Enhanced Status Filter)
 
-This page shows nutrition guidance based on the selected growth status.
+This page shows comprehensive nutrition guidance based on the selected growth status, with structured "What to eat," "How to eat," meal ideas, and links.
 
 ```javascript
 import wixData from 'wix-data';
@@ -785,13 +785,24 @@ $w.onReady(function () {
             .then((results) => {
                 if (results.items.length > 0) {
                     const item = results.items[0];
-                    $w("#goalText").text = "🎯 Goal: " + (item.goal || "");
-                    $w("#foodsText").text = "🥗 Recommended Foods: " + (item.recommendedFoods || "");
-                    $w("#mealText").text = "🍽️ Meal Pattern: " + (item.mealPattern || "");
-                    $w("#snackText").text = "🍎 Snack Ideas: " + (item.snackIdeas || "");
-                    $w("#avoidText").text = "🚫 Avoid: " + (item.avoid || "");
-                    $w("#tipText").text = "💡 Tip: " + (item.activityTip || "");
-                    $w("#nutrientsText").text = "⚡ Key Nutrients: " + (item.keyNutrients || "");
+                    
+                    // Format the display with clear sections
+                    $w("#goalText").text = "🎯 Goal:\n" + (item.goal || "");
+                    
+                    $w("#foodsText").text = "🍽️ RECOMMENDED FOODS:\n" + (item.recommendedFoods || "");
+                    
+                    // Split mealPattern to show "How to eat" and meal ideas separately
+                    const mealInfo = item.mealPattern || "";
+                    $w("#mealText").text = "🥄 " + mealInfo;
+                    
+                    $w("#snackText").text = "🥗 SNACK IDEAS:\n" + (item.snackIdeas || "");
+                    
+                    $w("#avoidText").text = "🚫 FOODS TO AVOID:\n" + (item.avoid || "");
+                    
+                    $w("#tipText").text = "💡 ACTIVITY & TIPS:\n" + (item.activityTip || "");
+                    
+                    $w("#nutrientsText").text = "⚡ KEY NUTRIENTS:\n" + (item.keyNutrients || "");
+                    
                     showAllDetails();
                 }
             });
@@ -817,6 +828,50 @@ function showAllDetails() {
     $w("#tipText").show("fade");
     $w("#nutrientsText").show("fade");
 }
+```
+
+**Data Structure in Wix CMS (FoodRecommendations collection):**
+
+Each item now contains comprehensive guidance:
+- **recommendedFoods** — Emoji-coded list of what to eat
+- **mealPattern** — Contains both "HOW TO EAT" practical steps AND "MEAL IDEAS"
+- **snackIdeas** — Quick snack options separated by pipes (|)
+- **keyNutrients** — Important nutrients to focus on
+- **activityTip** — Activity recommendations and health tips
+- **avoid** — Foods to avoid
+- **goal** — The nutritional objective for this status
+
+**Example display for "Underweight" status:**
+
+```
+🎯 Goal:
+Healthy weight gain through calorie-dense, nutrient-rich foods
+
+🍽️ RECOMMENDED FOODS:
+🥛 Whole milk | 🧀 Cheese & Paneer | 🥚 Eggs | 🥜 Peanut butter
+🍌 Bananas | 🥑 Avocado | 🍠 Sweet potato | 🌰 Nuts (crushed)
+
+🥄 HOW TO EAT:
+Offer 5-6 small meals/snacks instead of 3 large meals.
+Add one calorie booster per meal (ghee, nut powder, cheese).
+Do not give excess water before meals.
+Track weight monthly.
+
+MEAL IDEAS:
+Banana milkshake with full-fat milk | Dry fruits ladoo with ghee
+Cheese toast with butter | Sooji halwa with ghee | Makhana with ghee
+
+🥗 SNACK IDEAS:
+Dry fruits ladoo | Banana milkshake | Cheese toast | Sooji halwa...
+
+🚫 FOODS TO AVOID:
+Junk food that fills stomach without nutrition; excessive water before meals
+
+💡 ACTIVITY & TIPS:
+Monitor weight monthly; consult pediatrician if no weight gain in 2 months
+
+⚡ KEY NUTRIENTS:
+Calories, healthy fats, protein, iron, calcium
 ```
 
 **Required Page Elements:**
