@@ -365,30 +365,33 @@ def create_pdf_report(child_name, age_months, report):
         y -= 0.45 * cm
 
     # WHO Assessment Section
-    y -= 0.5 * cm
+    y -= 0.4 * cm
+    box_start_y = y
     
-    # Calculate box height based on number of messages
+    # Calculate exact box height: top padding (0.25cm) + title (0.35cm) + spacing (0.1cm) + messages + bottom padding (0.2cm)
     num_messages = len(report["who_msgs"])
-    box_height = 0.5 * cm + (num_messages * 0.35 * cm) + 0.3 * cm  # Extra padding
-    box_end_y = y - box_height
+    message_height = num_messages * 0.35 * cm
+    box_height = 0.25 * cm + 0.35 * cm + 0.1 * cm + message_height + 0.2 * cm
+    box_end_y = box_start_y - box_height
     
     # Draw box FIRST (so it's in background)
     c.setFillColor(colors.HexColor("#f0f0f0"))
     c.setStrokeColor(colors.gray)
     c.rect(margin_left - 0.1 * cm, box_end_y, content_width + 0.2 * cm, box_height, fill=1, stroke=1)
     
-    # Draw title inside box with proper padding
+    # Draw title with top padding
     c.setFillColor(colors.black)
     c.setFont("Helvetica-Bold", 12)
-    c.drawString(margin_left + 0.3 * cm, y - 0.35 * cm, "WHO Assessment Status:")
-    y -= 0.55 * cm
+    title_y = box_start_y - 0.25 * cm
+    c.drawString(margin_left + 0.3 * cm, title_y - 0.25 * cm, "WHO Assessment Status:")
     
-    # Draw messages inside box
+    # Draw messages with proper spacing
     c.setFont("Helvetica", 10)
+    msg_y = title_y - 0.35 * cm - 0.1 * cm
     for msg, color in report["who_msgs"]:
         c.setFillColor(color)
-        c.drawString(margin_left + 0.5 * cm, y, f"• {msg}")
-        y -= 0.35 * cm
+        c.drawString(margin_left + 0.5 * cm, msg_y, f"• {msg}")
+        msg_y -= 0.35 * cm
     
     c.setFillColor(colors.black)
     y = box_end_y - 0.2 * cm
