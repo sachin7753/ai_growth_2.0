@@ -320,69 +320,228 @@ def create_pdf_report(child_name, age_months, report):
     buffer = BytesIO()
     c = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
+    margin_left = 1.5 * cm
+    margin_right = 1.5 * cm
+    content_width = width - margin_left - margin_right
 
-    c.setFont("Helvetica-Bold", 16)
-    c.drawString(3 * cm, height - 3 * cm, f"Child Growth Report: {child_name}")
-    c.setFont("Helvetica", 12)
-    c.drawString(3 * cm, height - 4 * cm, f"Age: {int(age_months)//12}y {int(age_months)%12}m")
-    c.drawString(3 * cm, height - 4.7 * cm, f"Height Percentile: P{report['hfa_p']:.1f}")
-    c.drawString(3 * cm, height - 5.4 * cm, f"Weight-for-Height Percentile: P{report['wfh_p']:.1f}")
-    c.drawString(3 * cm, height - 6.1 * cm, f"BMI: {report['bmi']:.1f}")
-
-    c.setFont("Helvetica-Bold", 14)
-    c.drawString(3 * cm, height - 7 * cm, "WHO Assessment:")
-    c.setFont("Helvetica", 12)
-    y = height - 7.7 * cm
-    for msg, color in report["who_msgs"]:
-        c.setFillColor(color)
-        c.drawString(4 * cm, y, msg)
-        y -= 0.7 * cm
+    # ===== PAGE 1: Header & Basic Info =====
+    # Title with line
+    c.setFillColor(colors.HexColor("#1f77b4"))
+    c.rect(0, height - 1.2 * cm, width, 1.2 * cm, fill=1, stroke=0)
+    c.setFillColor(colors.white)
+    c.setFont("Helvetica-Bold", 20)
+    c.drawString(margin_left, height - 0.8 * cm, "Child Growth Report")
     c.setFillColor(colors.black)
 
+    # Child name and date
     c.setFont("Helvetica-Bold", 14)
-    c.drawString(3 * cm, y - 0.3 * cm, "AI Recommendations:")
-    c.setFont("Helvetica", 12)
-    y -= 1 * cm
-    for rec in report["recommendations"]:
-        clean_text = rec.replace("**", "")
-        wrapped_lines = [clean_text[i:i + 95] for i in range(0, len(clean_text), 95)]
-        for line in wrapped_lines:
-            c.drawString(4 * cm, y, line)
-            y -= 0.7 * cm
-            if y < 5 * cm:
-                c.showPage()
-                y = height - 3 * cm
+    c.drawString(margin_left, height - 2 * cm, f"Name: {child_name}")
+    c.setFont("Helvetica", 10)
+    from datetime import datetime
+    c.drawString(margin_left, height - 2.5 * cm, f"Generated: {datetime.now().strftime('%d %b %Y')}")
+
+    # Metrics grid
+    c.setFont("Helvetica-Bold", 11)
+    y = height - 3.2 * cm
+    metrics = [
+        f"Age: {int(age_months)//12}y {int(age_months)%12}m",
+        f"Height: {report['ht']:.1f} cm",
+        f"Weight: {report['wt']:.1f} kg",
+        f"BMI: {report['bmi']:.1f}",
+        f"Height Percentile: P{report['hfa_p']:.1f}",
+        f"Weight-for-Height: P{report['wfh_p']:.1f}",
+    ]
+    
+    col1_x = margin_left
+    col2_x = margin_left + content_width / 2
+    metric_idx = 0
+    for i in range(3):
+        if metric_idx < len(metrics):
+            c.drawString(col1_x, y, metrics[metric_idx])
+            metric_idx += 1
+        if metric_idx < len(metrics):
+            c.drawString(col2_x, y, metrics[metric_idx])
+            metric_idx += 1
+        y -= 0.45 * cm
+
+    # WHO Assessment Section
+    y -= 0.3 * cm
+    c.setFillColor(colors.HexColor("#f0f0f0"))
+    c.rect(margin_left - 0.1 * cm, y - 1.5 * cm, content_width + 0.2 * cm, 1.3 * cm, fill=1, stroke=1, strokeColor=colors.grey)
+    c.setFillColor(colors.black)
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(margin_left + 0.2 * cm, y - 0.15 * cm, "WHO Assessment Status:")
+    c.setFont("Helvetica", 10)
+    y -= 0.5 * cm
+    for msg, color in report["who_msgs"]:
+        c.setFillColor(color)
+        c.drawString(margin_left + 0.5 * cm, y, f"• {msg}")
+        y -= 0.35 * cm
+    c.setFillColor(colors.black)
+
+    # AI Status and Confidence
+    y -= 0.4 * cm
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(margin_left, y, "AI Assessment Result:")
+    c.setFont("Helvetica", 10)
+    c.drawString(margin_left + 0.3 * cm, y - 0.35 * cm, f"Status: {report['ai_status']}")
+    c.drawString(margin_left + 0.3 * cm, y - 0.65 * cm, f"Confidence: {report['confidence']:.1%}")
+
+    # Start recommendations section
+    y -= 1.2 * cm
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(margin_left, y, "Nutrition & Feeding Guidance:")
+    y -= 0.5 * cm
+
+    plan = report["recommendation_plan"]
+
+    # What to Eat
+    c.setFont("Helvetica-Bold", 11)
+    c.setFillColor(colors.HexColor("#2ca02c"))
+    c.drawString(margin_left + 0.2 * cm, y, "What to Eat:")
+    c.setFillColor(colors.black)
+    c.setFont("Helvetica", 9)
+    y -= 0.35 * cm
+    for item in plan["what_to_eat"]:
+        wrapped = [item[i:i + 85] for i in range(0, len(item), 85)]
+        for line in wrapped:
+            c.drawString(margin_left + 0.5 * cm, y, f"• {line}")
+            y -= 0.3 * cm
+        if y < 3.5 * cm:
+            c.showPage()
+            y = height - margin_left
+
+    # How to Eat
+    y -= 0.2 * cm
+    c.setFont("Helvetica-Bold", 11)
+    c.setFillColor(colors.HexColor("#d62728"))
+    c.drawString(margin_left + 0.2 * cm, y, "How to Eat (Practical Steps):")
+    c.setFillColor(colors.black)
+    c.setFont("Helvetica", 9)
+    y -= 0.35 * cm
+    for item in plan["how_to_eat"]:
+        wrapped = [item[i:i + 85] for i in range(0, len(item), 85)]
+        for line in wrapped:
+            c.drawString(margin_left + 0.5 * cm, y, f"• {line}")
+            y -= 0.3 * cm
+        if y < 3.5 * cm:
+            c.showPage()
+            y = height - margin_left
+
+    # Meal Ideas
+    y -= 0.2 * cm
+    c.setFont("Helvetica-Bold", 11)
+    c.setFillColor(colors.HexColor("#ff7f0e"))
+    c.drawString(margin_left + 0.2 * cm, y, "Meal & Snack Ideas:")
+    c.setFillColor(colors.black)
+    c.setFont("Helvetica", 9)
+    y -= 0.35 * cm
+    for item in plan["meal_ideas"]:
+        wrapped = [item[i:i + 85] for i in range(0, len(item), 85)]
+        for line in wrapped:
+            c.drawString(margin_left + 0.5 * cm, y, f"• {line}")
+            y -= 0.3 * cm
+        if y < 3.5 * cm:
+            c.showPage()
+            y = height - margin_left
+
+    # Video Resources
+    y -= 0.2 * cm
+    c.setFont("Helvetica-Bold", 11)
+    c.setFillColor(colors.HexColor("#9467bd"))
+    c.drawString(margin_left + 0.2 * cm, y, "Learn More (Video Resources):")
+    c.setFillColor(colors.black)
+    c.setFont("Helvetica", 9)
+    y -= 0.35 * cm
+    for video in plan["video_links"]:
+        title = video["title"]
+        wrapped = [title[i:i + 85] for i in range(0, len(title), 85)]
+        for line in wrapped:
+            c.drawString(margin_left + 0.5 * cm, y, f"• {line}")
+            y -= 0.3 * cm
+        if y < 3.5 * cm:
+            c.showPage()
+            y = height - margin_left
+
+    # Medical Disclaimer
+    y -= 0.3 * cm
+    c.setFillColor(colors.HexColor("#f9f9f9"))
+    c.rect(margin_left - 0.1 * cm, y - 0.8 * cm, content_width + 0.2 * cm, 0.7 * cm, fill=1, stroke=1, strokeColor=colors.grey)
+    c.setFillColor(colors.HexColor("#555555"))
+    c.setFont("Helvetica", 8)
+    c.drawString(margin_left + 0.2 * cm, y - 0.3 * cm, "Note: This guidance is complementary to medical advice. Always consult your pediatrician.")
+    c.drawString(margin_left + 0.2 * cm, y - 0.55 * cm, "For diagnosis and treatment, follow your healthcare provider's recommendations.")
+    c.setFillColor(colors.black)
+
+    # ===== PAGE N: Charts =====
+    c.showPage()
+    
+    # Charts title
+    c.setFillColor(colors.HexColor("#1f77b4"))
+    c.rect(0, height - 1.2 * cm, width, 1.2 * cm, fill=1, stroke=0)
+    c.setFillColor(colors.white)
+    c.setFont("Helvetica-Bold", 16)
+    c.drawString(margin_left, height - 0.8 * cm, "Growth Percentile Charts")
+    c.setFillColor(colors.black)
 
     hfa_buf = BytesIO()
     wfh_buf = BytesIO()
-    plt.figure(figsize=(6, 4))
-    plt.plot(list(report["hfa_curve"].keys()), list(report["hfa_curve"].values()), label="Height-for-age", color="green")
-    plt.scatter([report["ht"]], [report["ht"]], color="blue", label="Child Height")
-    plt.xlabel("Percentile")
-    plt.ylabel("Height (cm)")
-    plt.title("Height-for-Age Percentile")
-    plt.legend()
+    
+    # Create prettier charts
+    plt.figure(figsize=(7, 5))
+    plt.plot(list(report["hfa_curve"].keys()), list(report["hfa_curve"].values()), 
+             label="Height-for-age curve", color="#2ca02c", linewidth=2.5, marker="o", markersize=4)
+    plt.scatter([report["hfa_p"]], [report["ht"]], color="#1f77b4", s=200, zorder=5, 
+                label=f"Child's Position (P{report['hfa_p']:.1f})", edgecolors="black", linewidth=2)
+    plt.xlabel("Percentile (%)", fontsize=11, fontweight="bold")
+    plt.ylabel("Height (cm)", fontsize=11, fontweight="bold")
+    plt.title("Height-for-Age Growth Chart", fontsize=13, fontweight="bold", pad=15)
+    plt.grid(True, alpha=0.3, linestyle="--")
+    plt.legend(loc="best", fontsize=10)
     plt.tight_layout()
-    plt.savefig(hfa_buf, format="PNG")
+    plt.savefig(hfa_buf, format="PNG", dpi=150, bbox_inches="tight")
     plt.close()
     hfa_buf.seek(0)
 
-    plt.figure(figsize=(6, 4))
-    plt.plot(list(report["wfh_curve"].keys()), list(report["wfh_curve"].values()), label="Weight-for-height", color="orange")
-    plt.scatter([report["ht"]], [report["wt"]], color="red", label="Child Weight")
-    plt.xlabel("Percentile")
-    plt.ylabel("Weight (kg)")
-    plt.title("Weight-for-Height Percentile")
-    plt.legend()
+    plt.figure(figsize=(7, 5))
+    plt.plot(list(report["wfh_curve"].keys()), list(report["wfh_curve"].values()), 
+             label="Weight-for-height curve", color="#ff7f0e", linewidth=2.5, marker="s", markersize=4)
+    plt.scatter([report["wfh_p"]], [report["wt"]], color="#d62728", s=200, zorder=5, 
+                label=f"Child's Position (P{report['wfh_p']:.1f})", edgecolors="black", linewidth=2)
+    plt.xlabel("Percentile (%)", fontsize=11, fontweight="bold")
+    plt.ylabel("Weight (kg)", fontsize=11, fontweight="bold")
+    plt.title("Weight-for-Height Growth Chart", fontsize=13, fontweight="bold", pad=15)
+    plt.grid(True, alpha=0.3, linestyle="--")
+    plt.legend(loc="best", fontsize=10)
     plt.tight_layout()
-    plt.savefig(wfh_buf, format="PNG")
+    plt.savefig(wfh_buf, format="PNG", dpi=150, bbox_inches="tight")
     plt.close()
     wfh_buf.seek(0)
 
-    c.showPage()
-    c.drawImage(ImageReader(hfa_buf), 2 * cm, height / 2, width=16 * cm, height=9 * cm)
-    c.drawImage(ImageReader(wfh_buf), 2 * cm, 2 * cm, width=16 * cm, height=9 * cm)
-    c.showPage()
+    # Embed charts
+    chart_height = 4.5 * cm
+    chart_width = (content_width / 2) - 0.3 * cm
+    c.drawImage(ImageReader(hfa_buf), margin_left, height - chart_height - 2.5 * cm, 
+                width=chart_width, height=chart_height, preserveAspectRatio=True)
+    c.drawImage(ImageReader(wfh_buf), margin_left + chart_width + 0.6 * cm, height - chart_height - 2.5 * cm, 
+                width=chart_width, height=chart_height, preserveAspectRatio=True)
+    
+    # Chart interpretation
+    c.setFont("Helvetica-Bold", 11)
+    c.drawString(margin_left, height - chart_height - 3.2 * cm, "Chart Interpretation:")
+    c.setFont("Helvetica", 9)
+    chart_text = f"The blue/red dot shows where your child currently sits on the WHO percentile curve."
+    c.drawString(margin_left, height - chart_height - 3.6 * cm, chart_text)
+    higher_text = "A position closer to P50 (middle) is ideal. Positions below P3 or above P97 indicate concern."
+    c.drawString(margin_left, height - chart_height - 3.95 * cm, higher_text)
+    
+    # Footer
+    c.setFont("Helvetica", 7)
+    c.setFillColor(colors.grey)
+    c.drawString(margin_left, 0.5 * cm, "AI Child Growth Advisor | Generated by Smart Nutrition System")
+    c.drawRightString(width - margin_left, 0.5 * cm, f"Page {c.getPageNumber()}")
+    c.setFillColor(colors.black)
+    
     c.save()
     buffer.seek(0)
     return buffer
