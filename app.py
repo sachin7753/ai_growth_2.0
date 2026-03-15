@@ -445,7 +445,7 @@ def create_pdf_report(child_name, age_months, report):
             c.showPage()
             y = height - margin_left
 
-    # Video Resources
+    # Video Resources (with clickable links)
     y -= 0.2 * cm
     c.setFont("Helvetica-Bold", 11)
     c.setFillColor(colors.HexColor("#9467bd"))
@@ -455,22 +455,28 @@ def create_pdf_report(child_name, age_months, report):
     y -= 0.35 * cm
     for video in plan["video_links"]:
         title = video["title"]
-        wrapped = [title[i:i + 85] for i in range(0, len(title), 85)]
-        for line in wrapped:
-            c.drawString(margin_left + 0.5 * cm, y, f"• {line}")
-            y -= 0.3 * cm
+        url = video["url"]
+        # Shortened display text for readability
+        display_text = title if len(title) <= 70 else title[:67] + "..."
+        # Draw text and make it a clickable link
+        text_width = c.stringWidth(f"• {display_text}", "Helvetica", 9)
+        c.drawString(margin_left + 0.5 * cm, y, f"• {display_text}")
+        # Add clickable rectangle over the link text
+        c.linkURL(url, (margin_left + 0.5 * cm, y - 0.15 * cm, margin_left + 0.5 * cm + text_width, y + 0.1 * cm), relative=0)
+        y -= 0.3 * cm
         if y < 3.5 * cm:
             c.showPage()
             y = height - margin_left
 
-    # Medical Disclaimer
+    # Medical Disclaimer with link note
     y -= 0.3 * cm
     c.setFillColor(colors.HexColor("#f9f9f9"))
-    c.rect(margin_left - 0.1 * cm, y - 0.8 * cm, content_width + 0.2 * cm, 0.7 * cm, fill=1, stroke=1, strokeColor=colors.grey)
+    c.rect(margin_left - 0.1 * cm, y - 1.1 * cm, content_width + 0.2 * cm, 1.0 * cm, fill=1, stroke=1, strokeColor=colors.grey)
     c.setFillColor(colors.HexColor("#555555"))
     c.setFont("Helvetica", 8)
     c.drawString(margin_left + 0.2 * cm, y - 0.3 * cm, "Note: This guidance is complementary to medical advice. Always consult your pediatrician.")
     c.drawString(margin_left + 0.2 * cm, y - 0.55 * cm, "For diagnosis and treatment, follow your healthcare provider's recommendations.")
+    c.drawString(margin_left + 0.2 * cm, y - 0.8 * cm, "Video links are clickable: open the PDF in Adobe Reader or another PDF viewer to click them.")
     c.setFillColor(colors.black)
 
     # ===== PAGE N: Charts =====
@@ -526,14 +532,21 @@ def create_pdf_report(child_name, age_months, report):
     c.drawImage(ImageReader(wfh_buf), margin_left + chart_width + 0.6 * cm, height - chart_height - 2.5 * cm, 
                 width=chart_width, height=chart_height, preserveAspectRatio=True)
     
-    # Chart interpretation
+    # Chart interpretation with better formatting
     c.setFont("Helvetica-Bold", 11)
-    c.drawString(margin_left, height - chart_height - 3.2 * cm, "Chart Interpretation:")
+    c.drawString(margin_left, height - chart_height - 3.2 * cm, "Understanding Your Charts:")
     c.setFont("Helvetica", 9)
-    chart_text = f"The blue/red dot shows where your child currently sits on the WHO percentile curve."
-    c.drawString(margin_left, height - chart_height - 3.6 * cm, chart_text)
-    higher_text = "A position closer to P50 (middle) is ideal. Positions below P3 or above P97 indicate concern."
-    c.drawString(margin_left, height - chart_height - 3.95 * cm, higher_text)
+    interp_lines = [
+        "• The colored dot shows where your child currently sits on the WHO percentile curve.",
+        "• P50 (middle) is the ideal position - indicates average growth for the child's age/sex.",
+        "• P3 to P97 range is considered healthy.",
+        "• Below P3: May indicate wasting or faltering growth - consult pediatrician.",
+        "• Above P97: May indicate overweight or rapid gain - discuss with healthcare provider."
+    ]
+    y_interp = height - chart_height - 3.65 * cm
+    for line in interp_lines:
+        c.drawString(margin_left + 0.3 * cm, y_interp, line)
+        y_interp -= 0.3 * cm
     
     # Footer
     c.setFont("Helvetica", 7)
@@ -778,8 +791,10 @@ if generate_button and growth_model and scaler:
                     st.markdown(f"• {idea}")
 
             with st.expander("📹 Learn more with videos", expanded=False):
+                st.markdown("**Click any title to open the YouTube search in a new tab:**")
                 for video in plan["video_links"]:
-                    st.markdown(f"🎬 [{video['title']}]({video['url']})")
+                    st.markdown(f"- [▶️ {video['title']}]({video['url']})")
+                st.caption("💡 These are YouTube search results. Select the best video for your preferences.")
 
             st.info("✅ This guidance supports, but does not replace, pediatric medical advice. Always consult your child's doctor.")
         pdf_buffer = create_pdf_report(child_name, int(age_months), report)
