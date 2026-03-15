@@ -134,33 +134,143 @@ def ai_predict(model, scaler, age_m, ht, wt, sex, wfh_p, hfa_p):
     return status, confidence_score
 
 # ------------------- AI RECOMMENDATIONS -------------------
-def get_ai_recommendations(status, age_m, wfh_p, hfa_p, bmi):
-    recs = [f"**Status: {status}** (BMI: {bmi:.1f} | Wt-for-Ht: P{wfh_p:.1f})"]
+def build_age_meal_ideas(age_m):
+    if age_m < 6:
+        return [
+            "Exclusive breastmilk/formula feeding as advised by pediatrician.",
+            "Feed on demand 8-12 times/day and track wet diapers.",
+        ]
+    if age_m < 9:
+        return [
+            "Start with 2-3 tbsp thick mashed foods twice daily.",
+            "Add one new food every 3 days to watch tolerance.",
+        ]
+    if age_m < 12:
+        return [
+            "3 soft meals + 1 snack; keep texture soft and mashed/chopped.",
+            "Offer iron-rich foods daily (dal, egg yolk, fortified cereal).",
+        ]
+    if age_m < 24:
+        return [
+            "3 family meals + 2 snacks with child-sized portions.",
+            "Include protein at each meal (egg, paneer, dal, fish/chicken).",
+        ]
+    return [
+        "3 meals + 2 healthy snacks; follow a fixed meal schedule.",
+        "Use a balanced plate: 1/2 vegetables-fruits, 1/4 protein, 1/4 grains.",
+    ]
+
+
+def get_video_links(status, age_m):
+    links = [
+        {
+            "title": "WHO Infant and Young Child Feeding",
+            "url": "https://www.youtube.com/results?search_query=WHO+infant+and+young+child+feeding",
+        },
+        {
+            "title": "Healthy Tiffin and Child Meal Prep Ideas",
+            "url": "https://www.youtube.com/results?search_query=healthy+kids+meal+prep+ideas",
+        },
+    ]
+
     if status in ["Obese", "Overweight"]:
-        recs += [
-            "- Balanced meals with vegetables, fruits, lean proteins.",
-            "- Avoid sugary drinks & high-calorie snacks.",
-            "- 60 mins daily physical activity.",
-            "- Pediatric consultation if BMI>30 or rapid gain.",
+        links.append(
+            {
+                "title": "Portion Control for Children",
+                "url": "https://www.youtube.com/results?search_query=portion+control+for+children",
+            }
+        )
+    elif status == "Underweight":
+        links.append(
+            {
+                "title": "High Calorie Healthy Foods for Kids",
+                "url": "https://www.youtube.com/results?search_query=high+calorie+healthy+foods+for+kids",
+            }
+        )
+    elif status == "Stunted":
+        links.append(
+            {
+                "title": "Protein and Micronutrient Foods for Growth",
+                "url": "https://www.youtube.com/results?search_query=protein+micronutrient+foods+for+kids+growth",
+            }
+        )
+
+    if age_m < 12:
+        links.append(
+            {
+                "title": "Safe Weaning and Complementary Feeding",
+                "url": "https://www.youtube.com/results?search_query=complementary+feeding+6+to+12+months",
+            }
+        )
+
+    return links
+
+
+def flatten_recommendation_plan(plan):
+    flat = [plan["summary"], "What to eat:"]
+    flat.extend([f"- {item}" for item in plan["what_to_eat"]])
+    flat.append("How to eat:")
+    flat.extend([f"- {item}" for item in plan["how_to_eat"]])
+    flat.append("Meal and snack ideas:")
+    flat.extend([f"- {item}" for item in plan["meal_ideas"]])
+    flat.append("Helpful videos:")
+    flat.extend([f"- {item['title']}: {item['url']}" for item in plan["video_links"]])
+    flat.append("Note: Follow your pediatrician's advice for allergies, illness, and supplements.")
+    return flat
+
+
+def get_ai_recommendations(status, age_m, wfh_p, hfa_p, bmi):
+    recs = {
+        "summary": f"Status: {status} (BMI: {bmi:.1f} | Wt-for-Ht: P{wfh_p:.1f})",
+        "what_to_eat": [],
+        "how_to_eat": [],
+        "meal_ideas": build_age_meal_ideas(age_m),
+        "video_links": [],
+    }
+
+    if status in ["Obese", "Overweight"]:
+        recs["what_to_eat"] = [
+            "Vegetables, fruits, lean proteins, whole grains, and plain curd.",
+            "High-fiber snacks like roasted chana, fruit slices, and sprouts.",
+        ]
+        recs["how_to_eat"] = [
+            "Serve fixed portions using a small plate; avoid second servings.",
+            "Use water first, then meal; avoid screen-time eating.",
+            "60 minutes active play daily and regular sleep schedule.",
+            "Pediatric consultation if BMI > 30 or rapid weight gain.",
         ]
     elif status == "Underweight":
-        recs += [
-            "- Increase nutrient-dense foods (nuts, dairy, eggs).",
-            "- Frequent small meals.",
-            "- Monitor growth monthly.",
+        recs["what_to_eat"] = [
+            "Energy-dense nutritious foods: eggs, paneer, nut powders, banana, sweet potato.",
+            "Healthy fats in small amounts: ghee, peanut butter, full-fat dairy.",
+        ]
+        recs["how_to_eat"] = [
+            "Offer 5-6 small meals/snacks instead of 3 large meals.",
+            "Add one calorie booster per meal (ghee, nut powder, cheese).",
+            "Do not give excess water before meals; track weight monthly.",
         ]
     elif status == "Stunted":
-        recs += [
-            "- Focus on iron, zinc, vitamin A-rich foods.",
-            "- Ensure adequate protein.",
-            "- Pediatric evaluation for supplements.",
+        recs["what_to_eat"] = [
+            "Protein-rich foods in each meal: dal, egg, fish/chicken, paneer, soybean.",
+            "Micronutrient-rich foods: green leafy vegetables, orange fruits, ragi.",
+        ]
+        recs["how_to_eat"] = [
+            "Keep regular meal times and include protein in breakfast, lunch, and dinner.",
+            "Pair iron foods with vitamin C foods (lemon, orange, guava).",
+            "Ask pediatrician for iron/zinc/vitamin A evaluation if growth remains slow.",
         ]
     else:
-        recs += [
-            "- Continue balanced diet & regular meals.",
-            "- Encourage 60+ mins active play.",
-            "- Regular pediatric check-ups.",
+        recs["what_to_eat"] = [
+            "Balanced plate with grains, protein, vegetables, fruits, and dairy.",
+            "Rotate foods weekly to improve nutrient variety and taste acceptance.",
         ]
+        recs["how_to_eat"] = [
+            "3 meals + 2 planned snacks at consistent times.",
+            "Family meals without pressure feeding; child decides appetite.",
+            "60+ minutes active play and regular pediatric checks.",
+        ]
+
+    recs["video_links"] = get_video_links(status, age_m)
     return recs
 
 # ------------------- REPORT GENERATION -------------------
@@ -187,13 +297,15 @@ def generate_report(age_m, ht, wt, sex, model, scaler):
         who_msgs.append((f"Stunting risk (P{hfa_p:.1f})", colors.red))
     else:
         who_msgs.append(("Ht-for-age healthy.", colors.green))
-    recommendations = get_ai_recommendations(ai_status, age_m, wfh_p, hfa_p, bmi)
+    recommendation_plan = get_ai_recommendations(ai_status, age_m, wfh_p, hfa_p, bmi)
+    recommendations = flatten_recommendation_plan(recommendation_plan)
     return {
         "wfh_p": wfh_p,
         "hfa_p": hfa_p,
         "bmi": bmi,
         "who_msgs": who_msgs,
         "recommendations": recommendations,
+        "recommendation_plan": recommendation_plan,
         "ai_status": ai_status,
         "confidence": confidence,
         "hfa_curve": hfa_curve,
@@ -232,11 +344,14 @@ def create_pdf_report(child_name, age_months, report):
     c.setFont("Helvetica", 12)
     y -= 1 * cm
     for rec in report["recommendations"]:
-        c.drawString(4 * cm, y, rec.replace("**", ""))
-        y -= 0.7 * cm
-        if y < 5 * cm:
-            c.showPage()
-            y = height - 3 * cm
+        clean_text = rec.replace("**", "")
+        wrapped_lines = [clean_text[i:i + 95] for i in range(0, len(clean_text), 95)]
+        for line in wrapped_lines:
+            c.drawString(4 * cm, y, line)
+            y -= 0.7 * cm
+            if y < 5 * cm:
+                c.showPage()
+                y = height - 3 * cm
 
     hfa_buf = BytesIO()
     wfh_buf = BytesIO()
@@ -479,12 +594,35 @@ if generate_button and growth_model and scaler:
         with col_who:
             st.subheader("📈 WHO Assessment")
             for msg, color in report["who_msgs"]:
-                st.markdown(f"- {msg}")
+                if "healthy" in msg.lower():
+                    st.success(f"✅ {msg}")
+                elif "risk" in msg.lower():
+                    st.warning(f"⚠️ {msg}")
+                else:
+                    st.info(f"ℹ️ {msg}")
         with col_ai:
             st.subheader("🤖 AI Recommendations")
             st.caption(f"Status: **{report['ai_status']}** | Confidence: **{report['confidence']:.1%}**")
-            for tip in report["recommendations"]:
-                st.markdown(f"- {tip}")
+            plan = report["recommendation_plan"]
+
+            # Expandable sections for better UX
+            with st.expander("🍽️ What to eat", expanded=True):
+                for tip in plan["what_to_eat"]:
+                    st.markdown(f"• {tip}")
+
+            with st.expander("🥄 How to eat (practical guidelines)", expanded=True):
+                for tip in plan["how_to_eat"]:
+                    st.markdown(f"• {tip}")
+
+            with st.expander("🥗 Meal and snack ideas", expanded=False):
+                for idea in plan["meal_ideas"]:
+                    st.markdown(f"• {idea}")
+
+            with st.expander("📹 Learn more with videos", expanded=False):
+                for video in plan["video_links"]:
+                    st.markdown(f"🎬 [{video['title']}]({video['url']})")
+
+            st.info("✅ This guidance supports, but does not replace, pediatric medical advice. Always consult your child's doctor.")
         pdf_buffer = create_pdf_report(child_name, int(age_months), report)
         st.download_button("📄 Download PDF", data=pdf_buffer, file_name=f"{child_name}_Growth_Report.pdf", mime="application/pdf")
 
