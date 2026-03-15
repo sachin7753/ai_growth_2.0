@@ -367,7 +367,8 @@ def create_pdf_report(child_name, age_months, report):
     # WHO Assessment Section
     y -= 0.3 * cm
     c.setFillColor(colors.HexColor("#f0f0f0"))
-    c.rect(margin_left - 0.1 * cm, y - 1.5 * cm, content_width + 0.2 * cm, 1.3 * cm, fill=1, stroke=1, strokecolor=colors.gray)
+    c.setStrokeColor(colors.gray)
+    c.rect(margin_left - 0.1 * cm, y - 1.5 * cm, content_width + 0.2 * cm, 1.3 * cm, fill=1, stroke=1)
     c.setFillColor(colors.black)
     c.setFont("Helvetica-Bold", 12)
     c.drawString(margin_left + 0.2 * cm, y - 0.15 * cm, "WHO Assessment Status:")
@@ -471,7 +472,8 @@ def create_pdf_report(child_name, age_months, report):
     # Medical Disclaimer with link note
     y -= 0.3 * cm
     c.setFillColor(colors.HexColor("#f9f9f9"))
-    c.rect(margin_left - 0.1 * cm, y - 1.1 * cm, content_width + 0.2 * cm, 1.0 * cm, fill=1, stroke=1, strokecolor=colors.gray)
+    c.setStrokeColor(colors.gray)
+    c.rect(margin_left - 0.1 * cm, y - 1.1 * cm, content_width + 0.2 * cm, 1.0 * cm, fill=1, stroke=1)
     c.setFillColor(colors.HexColor("#555555"))
     c.setFont("Helvetica", 8)
     c.drawString(margin_left + 0.2 * cm, y - 0.3 * cm, "Note: This guidance is complementary to medical advice. Always consult your pediatrician.")
