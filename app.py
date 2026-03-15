@@ -366,19 +366,33 @@ def create_pdf_report(child_name, age_months, report):
 
     # WHO Assessment Section
     y -= 0.3 * cm
+    box_start_y = y
+    
+    # Calculate box height based on number of messages (calculate first before drawing)
+    num_messages = len(report["who_msgs"])
+    box_height = 0.45 * cm + (num_messages * 0.35 * cm) + 0.15 * cm
+    box_end_y = box_start_y - box_height
+    
+    # Draw box FIRST (so it's in background)
     c.setFillColor(colors.HexColor("#f0f0f0"))
     c.setStrokeColor(colors.gray)
-    c.rect(margin_left - 0.1 * cm, y - 1.5 * cm, content_width + 0.2 * cm, 1.3 * cm, fill=1, stroke=1)
+    c.rect(margin_left - 0.1 * cm, box_end_y, content_width + 0.2 * cm, box_height, fill=1, stroke=1)
+    
+    # Draw title
     c.setFillColor(colors.black)
     c.setFont("Helvetica-Bold", 12)
-    c.drawString(margin_left + 0.2 * cm, y - 0.15 * cm, "WHO Assessment Status:")
+    c.drawString(margin_left + 0.2 * cm, y - 0.3 * cm, "WHO Assessment Status:")
+    y -= 0.45 * cm
+    
+    # Draw messages
     c.setFont("Helvetica", 10)
-    y -= 0.5 * cm
     for msg, color in report["who_msgs"]:
         c.setFillColor(color)
         c.drawString(margin_left + 0.5 * cm, y, f"• {msg}")
         y -= 0.35 * cm
+    
     c.setFillColor(colors.black)
+    y = box_end_y - 0.15 * cm
 
     # AI Status and Confidence
     y -= 0.4 * cm
@@ -471,15 +485,23 @@ def create_pdf_report(child_name, age_months, report):
 
     # Medical Disclaimer with link note
     y -= 0.3 * cm
+    box_start_y = y
+    box_height = 1.1 * cm  # Fixed for 3 lines
+    box_end_y = box_start_y - box_height
+    
+    # Draw box FIRST (so it's in background)
     c.setFillColor(colors.HexColor("#f9f9f9"))
     c.setStrokeColor(colors.gray)
-    c.rect(margin_left - 0.1 * cm, y - 1.1 * cm, content_width + 0.2 * cm, 1.0 * cm, fill=1, stroke=1)
+    c.rect(margin_left - 0.1 * cm, box_end_y, content_width + 0.2 * cm, box_height, fill=1, stroke=1)
+    
+    # Draw text on top
     c.setFillColor(colors.HexColor("#555555"))
     c.setFont("Helvetica", 8)
     c.drawString(margin_left + 0.2 * cm, y - 0.3 * cm, "Note: This guidance is complementary to medical advice. Always consult your pediatrician.")
     c.drawString(margin_left + 0.2 * cm, y - 0.55 * cm, "For diagnosis and treatment, follow your healthcare provider's recommendations.")
     c.drawString(margin_left + 0.2 * cm, y - 0.8 * cm, "Video links are clickable: open the PDF in Adobe Reader or another PDF viewer to click them.")
     c.setFillColor(colors.black)
+    y = box_end_y - 0.15 * cm
 
     # ===== PAGE N: Charts =====
     c.showPage()
